@@ -9,59 +9,37 @@
     <link rel="stylesheet" href="css/style.css">
     
     <!-- קישור לקובץ JavaScript חיצוני (בסוף body) -->
-    <!-- <script src="js/alemtube.js" defer></script> -->
+    <script src="js/alemtube.js" defer></script> 
     
     <!-- קישור לתמונה -->
     <link rel="icon" type="image/x-icon" href="images/logo.png">
 </head>
 <body>
-    <!-- כותרת -->
-    <header>
-        <h1>AlemTube</h1>
-        <p>נגן יוטיוב חפשי</p>
-    </header>
-    
-    <!-- אזור חיפוש -->
-    <div id="search-container">
-        <div class="search-box">
-            <input type="text" id="searchInput" 
-                   placeholder="הדבק קישור יוטיוב כאן..." 
-                   autocomplete="off">
-            <button id="searchBtn">
-                <span>הפעל</span>
-                <span class="icon">▶</span>
-            </button>
-        </div>
-        <p class="hint">דוגמה: https://youtube.com/watch?v=... או https://youtu.be/...</p>
+  <header>AbeTube - נגן יוטיוב  </header>
+
+  <div class="container">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="הקלד מילת חיפוש או קישור ל-YouTube" />
+      <button onclick="searchVideos()">חפש</button>
     </div>
-    
-    <!-- נגן הוידאו -->
-    <div id="player-container">
-        <div id="player">
-            <p class="placeholder">הזן קישור למעלה כדי להתחיל</p>
-        </div>
-        
-        <!-- כפתור מסך מלא -->
-        <div id="controls">
-            <button id="fullscreenBtn" class="fullscreen-btn">
-                <span>מסך מלא</span>
-                <span class="icon">⛶</span>
-            </button>
-        </div>
-    </div>
-    
-    <!-- הוראות -->
-    <div id="instructions">
-        <h2>כיצד להשתמש:</h2>
-        <ol>
-            <li>העתק קישור סרטון מיוטיוב</li>
-            <li>הדבק בתיבה למעלה</li>
-            <li>לחץ על "הפעל"</li>
-            <li>לחץ על "מסך מלא" לצפייה מיטבית</li>
-        </ol>
-    </div>
-    
-    <!-- קישור לקובץ JavaScript בסוף -->
+
+    <div id="player-container"></div>
+    <div id="results"></div>
+  </div>
+
+  <button id="fullscreen-btn" onclick="toggleFullScreen()">מעבר למסך מלא</button>
+
+  <div id="splash">
+  <div class="fireworks"></div>
+  <div class="logo-area">
+    <img src="logo.png" alt="logo" />
+    <h1 class="title">AbeTube</h1>
+  </div>
+</div>
+  
+  
+  
     <script src="js/alemtube.js"></script>
 </body>
 </html>
+
