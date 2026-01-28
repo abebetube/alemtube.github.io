@@ -1,18 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="he" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AbeTube</title>
-    <link rel="stylesheet" href="style.css">
+    <title>AlemTube - נגן יוטיוב</title>
+    
+    <!-- קישור לקובץ CSS חיצוני -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- קישור לקובץ JavaScript חיצוני (בסוף body) -->
+    <!-- <script src="js/alemtube.js" defer></script> -->
+    
+    <!-- קישור לתמונה -->
     <link rel="icon" type="image/x-icon" href="images/logo.png">
 </head>
 <body>
-    <div id="search">
-        <input type="text" id="searchInput" placeholder="נגן יוטיוב" autocomplete="off">
-        <button id="searchBtn">חפש</button>
+    <!-- כותרת -->
+    <header>
+        <h1>AlemTube</h1>
+        <p>נגן יוטיוב חפשי</p>
+    </header>
+    
+    <!-- אזור חיפוש -->
+    <div id="search-container">
+        <div class="search-box">
+            <input type="text" id="searchInput" 
+                   placeholder="הדבק קישור יוטיוב כאן..." 
+                   autocomplete="off">
+            <button id="searchBtn">
+                <span>הפעל</span>
+                <span class="icon">▶</span>
+            </button>
+        </div>
+        <p class="hint">דוגמה: https://youtube.com/watch?v=... או https://youtu.be/...</p>
     </div>
-    <div id="player"></div>
-    <script src="alemtube.js"></script>
+    
+    <!-- נגן הוידאו -->
+    <div id="player-container">
+        <div id="player">
+            <p class="placeholder">הזן קישור למעלה כדי להתחיל</p>
+        </div>
+        
+        <!-- כפתור מסך מלא -->
+        <div id="controls">
+            <button id="fullscreenBtn" class="fullscreen-btn">
+                <span>מסך מלא</span>
+                <span class="icon">⛶</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- הוראות -->
+    <div id="instructions">
+        <h2>כיצד להשתמש:</h2>
+        <ol>
+            <li>העתק קישור סרטון מיוטיוב</li>
+            <li>הדבק בתיבה למעלה</li>
+            <li>לחץ על "הפעל"</li>
+            <li>לחץ על "מסך מלא" לצפייה מיטבית</li>
+        </ol>
+    </div>
+    
+    <!-- קישור לקובץ JavaScript בסוף -->
+    <script src="js/alemtube.js"></script>
 </body>
 </html>
