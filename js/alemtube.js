@@ -1,292 +1,491 @@
 /**
- * AlemTube - נגן יוטיוב
- * קובץ JavaScript נפרד
+ * AbeTube - נגן יוטיוב
+ * קובץ JavaScript ראשי
  */
 
-// ===== פונקציות עזר =====
+// הגדרות קבועות
+const API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
+const YT_EMBED_URL = "https://www.youtube-nocookie.com/embed/";
+const YT_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
+const YT_VIDEO_URL = "https://www.googleapis.com/youtube/v3/videos";
+
+// משתנים גלובליים
+let playlist = [];
+let currentIndex = 0;
+let ytPlayer = null;
+
+// ===== פונקציות אתחול =====
 
 /**
- * מחלץ מזהה סרטון מ-URL של יוטיוב
- * @param {string} url - קישור יוטיוב
- * @returns {string|null} - מזהה הסרטון או null
+ * אתחול האפליקציה
  */
-function extractVideoId(url) {
-    // תבניות URL שונות של יוטיוב
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
-    ];
-    
-    for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-            return match[1];
-        }
-    }
-    
-    // אם זה כבר מזהה סרטון ישיר (11 תווים)
-    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
-        return url;
-    }
-    
-    return null;
+function initApp() {
+  console.log("AbeTube מתחיל...");
+  
+  // הגדרת אירועים
+  setupEventListeners();
+  
+  // בדיקת זיקוקים
+  setupSplashScreen();
+  
+  // טעינת מטמון
+  loadFromCache();
+  
+  // הפעלת זיקוקים בעתיד
+  setTimeout(() => {
+    launchFireworks();
+  }, 10000);
 }
 
 /**
- * יוצרת URL הטבעה נכון לפי מזהה סרטון
- * @param {string} videoId - מזהה סרטון
- * @returns {string} - URL הטבעה
+ * הגדרת מאזיני אירועים
  */
-function createEmbedUrl(videoId) {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
-}
-
-// ===== פונקציות נגינה =====
-
-/**
- * מטבעת סרטון יוטיוב בנגן
- * @param {string} videoId - מזהה הסרטון להטבעה
- */
-function embedVideo(videoId) {
-    const playerContainer = document.getElementById('player');
-    
-    if (!playerContainer) {
-        console.error('לא נמצא נגן');
-        return;
-    }
-    
-    // מנקה את הנגן הקודם
-    playerContainer.innerHTML = '';
-    
-    // יוצר iframe חדש
-    const iframe = document.createElement('iframe');
-    iframe.id = 'youtubePlayer';
-    iframe.src = createEmbedUrl(videoId);
-    iframe.title = 'נגן יוטיוב';
-    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-    iframe.allowFullscreen = true;
-    iframe.loading = 'lazy';
-    
-    playerContainer.appendChild(iframe);
-    
-    // מראה את כפתור מסך מלא
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    if (fullscreenBtn) {
-        fullscreenBtn.style.display = 'inline-flex';
-    }
-    
-    // שומר בהיסטוריה (אופציונלי)
-    saveToHistory(videoId);
+function setupEventListeners() {
+  const searchBtn = document.getElementById("searchBtn");
+  const searchInput = document.getElementById("searchInput");
+  const fullscreenBtn = document.getElementById("fullscreen-btn");
+  
+  if (searchBtn) {
+    searchBtn.addEventListener("click", searchVideos);
+  }
+  
+  if (searchInput) {
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        searchVideos();
+      }
+    });
+  }
+  
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener("click", toggleFullScreen);
+  }
+  
+  // מאזין לשינוי גודל מסך
+  document.addEventListener("fullscreenchange", updateFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+  document.addEventListener("mozfullscreenchange", updateFullscreenButton);
+  document.addEventListener("MSFullscreenChange", updateFullscreenButton);
 }
 
 /**
- * מפעילה סרטון מקישור שהוזן
- * @param {string} input - קלט מהמשתמש
+ * הגדרת מסך התחלה עם זיקוקים
  */
-function playFromInput(input) {
-    if (!input.trim()) {
-        showMessage('נא להזין קישור יוטיוב', 'error');
-        return;
+function setupSplashScreen() {
+  const splash = document.getElementById("splash");
+  if (!splash) return;
+  
+  // הפעלת זיקוקים
+  let count = 0;
+  const interval = setInterval(() => {
+    launchFireworks(3);
+    count++;
+    if (count >= 4) clearInterval(interval);
+  }, 700);
+  
+  // הסתרת מסך התחלה
+  setTimeout(() => {
+    splash.style.display = "none";
+  }, 4000);
+}
+
+// ===== פונקציות חיפוש ונגינה =====
+
+/**
+ * חיפוש סרטונים
+ */
+async function searchVideos() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) {
+    showAlert("נא להזין מילת חיפוש או קישור", "error");
+    return;
+  }
+  
+  // איפוס נתונים
+  playlist = [];
+  currentIndex = 0;
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("player-container").innerHTML = "";
+  
+  // בדיקה אם הקלט הוא קישור YouTube
+  const isURL = query.includes("youtube.com") || query.includes("youtu.be");
+  if (isURL) {
+    await handleYouTubeURL(query);
+    return;
+  }
+  
+  // חיפוש רגיל
+  await searchYouTube(query);
+}
+
+/**
+ * טיפול בקישור YouTube ישיר
+ */
+async function handleYouTubeURL(url) {
+  const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+  const videoId = match ? match[1] : "";
+  
+  if (!videoId) {
+    showAlert("קישור YouTube לא תקין", "error");
+    return;
+  }
+  
+  // בדיקת אפשרות הטבעה
+  if (await checkEmbeddable(videoId)) {
+    playlist = [{
+      videoId: videoId,
+      title: "סרטון שהוזן",
+      thumb: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    }];
+    currentIndex = 0;
+    saveToCache();
+    playVideo(currentIndex);
+    showAlert("סרטון נטען בהצלחה", "success");
+  } else {
+    showAlert("סרטון זה לא ניתן להטמעה", "error");
+  }
+}
+
+/**
+ * חיפוש ב-YouTube API
+ */
+async function searchYouTube(query) {
+  showAlert("מחפש סרטונים...", "success");
+  
+  const url = `${YT_SEARCH_URL}?part=snippet&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}&maxResults=30&relevanceLanguage=he`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    
+    const data = await response.json();
+    
+    // עיבוד התוצאות
+    const videoPromises = data.items.map(async (item) => {
+      const videoId = item.id.videoId;
+      if (await checkEmbeddable(videoId)) {
+        return {
+          videoId: videoId,
+          title: item.snippet.title,
+          thumb: item.snippet.thumbnails.medium.url
+        };
+      }
+      return null;
+    });
+    
+    const results = await Promise.all(videoPromises);
+    playlist = results.filter(item => item !== null);
+    
+    if (playlist.length === 0) {
+      showAlert("לא נמצאו סרטונים ניתנים לניגון", "error");
+      return;
     }
     
-    const videoId = extractVideoId(input.trim());
+    currentIndex = 0;
+    saveToCache();
+    playVideo(currentIndex);
+    showAlert(`נמצאו ${playlist.length} סרטונים`, "success");
     
-    if (videoId) {
-        embedVideo(videoId);
-        showMessage('מטעים סרטון...', 'success');
-    } else {
-        showMessage('קישור לא תקין. נא להזין קישור יוטיוב תקין.', 'error');
+  } catch (error) {
+    console.error("שגיאת חיפוש:", error);
+    showAlert("שגיאה בחיפוש סרטונים", "error");
+  }
+}
+
+/**
+ * ניגון סרטון לפי אינדקס
+ */
+function playVideo(index) {
+  if (index < 0 || index >= playlist.length) return;
+  
+  const video = playlist[index];
+  currentIndex = index;
+  
+  // עדכון נגן
+  const playerContainer = document.getElementById("player-container");
+  playerContainer.innerHTML = `
+    <iframe 
+      id="ytplayer" 
+      src="${YT_EMBED_URL}${video.videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&controls=1"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  `;
+  
+  // גלילה לנגן
+  setTimeout(() => {
+    playerContainer.scrollIntoView({ behavior: "smooth" });
+  }, 500);
+  
+  // הצגת תוצאות אחרות
+  displayOtherVideos();
+  
+  // שמירה במטמון
+  saveToCache();
+  
+  // התחלת מעקב אחר הסרטון
+  setTimeout(setupPlayerEvents, 1000);
+}
+
+/**
+ * הצגת סרטונים אחרים מהפלייליסט
+ */
+function displayOtherVideos() {
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "";
+  
+  playlist.forEach((video, index) => {
+    if (index === currentIndex) return;
+    
+    const videoItem = document.createElement("div");
+    videoItem.className = "video-item";
+    videoItem.onclick = () => {
+      currentIndex = index;
+      playVideo(index);
+    };
+    
+    videoItem.innerHTML = `
+      <img src="${video.thumb}" alt="${video.title}" loading="lazy">
+      <div class="video-title">${video.title}</div>
+    `;
+    
+    resultsDiv.appendChild(videoItem);
+  });
+}
+
+// ===== פונקציות YouTube API =====
+
+/**
+ * בדיקת אפשרות הטבעה של סרטון
+ */
+async function checkEmbeddable(videoId) {
+  const url = `${YT_VIDEO_URL}?part=status&id=${videoId}&key=${API_KEY}`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.items?.[0]?.status?.embeddable ?? false;
+  } catch (error) {
+    console.error("שגיאה בבדיקת הטבעה:", error);
+    return false;
+  }
+}
+
+/**
+ * הגדרת אירועי נגן YouTube
+ */
+function setupPlayerEvents() {
+  if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+    setTimeout(setupPlayerEvents, 500);
+    return;
+  }
+  
+  if (ytPlayer) {
+    ytPlayer.destroy();
+  }
+  
+  ytPlayer = new YT.Player('ytplayer', {
+    events: {
+      onStateChange: onPlayerStateChange,
+      onError: onPlayerError
     }
+  });
+}
+
+/**
+ * טיפול בשינוי מצב הנגן
+ */
+function onPlayerStateChange(event) {
+  // ניגון אוטומטי לסרטון הבא בסיום
+  if (event.data === YT.PlayerState.ENDED && currentIndex + 1 < playlist.length) {
+    currentIndex++;
+    playVideo(currentIndex);
+  }
+}
+
+/**
+ * טיפול בשגיאות נגן
+ */
+function onPlayerError(error) {
+  console.error("שגיאת נגן YouTube:", error);
+  showAlert("שגיאה בנגינת הסרטון", "error");
 }
 
 // ===== פונקציות מסך מלא =====
 
 /**
- * עוברת למסך מלא
+ * מעבר למסך מלא
  */
-function goFullscreen() {
-    const player = document.getElementById('youtubePlayer');
-    
-    if (!player) {
-        showMessage('אין סרטון נגן', 'error');
-        return;
+function toggleFullScreen() {
+  const elem = document.documentElement;
+  
+  if (!document.fullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
     }
-    
-    if (player.requestFullscreen) {
-        player.requestFullscreen();
-    } else if (player.webkitRequestFullscreen) {
-        player.webkitRequestFullscreen();
-    } else if (player.mozRequestFullScreen) {
-        player.mozRequestFullScreen();
-    } else if (player.msRequestFullscreen) {
-        player.msRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
     }
-}
-
-// ===== פונקציות עזר נוספות =====
-
-/**
- * מציגה הודעת מערכת
- * @param {string} text - טקסט ההודעה
- * @param {string} type - סוג ההודעה ('success' או 'error')
- */
-function showMessage(text, type = 'info') {
-    // הסר הודעות קודמות
-    const existingMsg = document.querySelector('.system-message');
-    if (existingMsg) {
-        existingMsg.remove();
-    }
-    
-    // צור הודעה חדשה
-    const message = document.createElement('div');
-    message.className = `system-message ${type}`;
-    message.textContent = text;
-    message.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 15px 25px;
-        border-radius: 8px;
-        color: white;
-        font-weight: bold;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease;
-    `;
-    
-    if (type === 'success') {
-        message.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
-    } else if (type === 'error') {
-        message.style.background = 'linear-gradient(45deg, #f44336, #d32f2f)';
-    } else {
-        message.style.background = 'linear-gradient(45deg, #2196F3, #1976D2)';
-    }
-    
-    document.body.appendChild(message);
-    
-    // הסר אחרי 3 שניות
-    setTimeout(() => {
-        message.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => message.remove(), 300);
-    }, 3000);
+  }
 }
 
 /**
- * שומר סרטון בהיסטוריה (LocalStorage)
- * @param {string} videoId - מזהה הסרטון
+ * עדכון טקסט כפתור מסך מלא
  */
-function saveToHistory(videoId) {
-    try {
-        let history = JSON.parse(localStorage.getItem('alemtube_history')) || [];
-        history = history.filter(id => id !== videoId); // הסר כפילויות
-        history.unshift(videoId); // הוסף להתחלה
-        history = history.slice(0, 10); // שמור רק 10 האחרונים
-        localStorage.setItem('alemtube_history', JSON.stringify(history));
-    } catch (e) {
-        console.log('לא ניתן לשמור היסטוריה:', e);
-    }
+function updateFullscreenButton() {
+  const btn = document.getElementById("fullscreen-btn");
+  if (btn) {
+    btn.textContent = document.fullscreenElement ? "יציאה ממסך מלא" : "מעבר למסך מלא";
+  }
 }
 
-// ===== אנימציות CSS =====
+// ===== פונקציות עזר =====
 
 /**
- * מוסיפה אנימציות CSS
+ * הצגת הודעה
  */
-function addAnimations() {
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(-50%) translateY(-30px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(-50%) translateY(0); opacity: 1; }
-            to { transform: translateX(-50%) translateY(-30px); opacity: 0; }
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-    `;
-    document.head.appendChild(style);
+function showAlert(message, type = "info") {
+  // הסרת התראות קודמות
+  const existingAlerts = document.querySelectorAll(".alert");
+  existingAlerts.forEach(alert => alert.remove());
+  
+  // יצירת התראה חדשה
+  const alertDiv = document.createElement("div");
+  alertDiv.className = `alert ${type}`;
+  alertDiv.textContent = message;
+  
+  document.body.appendChild(alertDiv);
+  
+  // הסרת ההתראה אחרי 3 שניות
+  setTimeout(() => {
+    alertDiv.style.opacity = "0";
+    setTimeout(() => alertDiv.remove(), 300);
+  }, 3000);
 }
 
-// ===== אתחול האפליקציה =====
+/**
+ * הפעלת זיקוקים
+ */
+function launchFireworks(count = 5) {
+  const container = document.querySelector('.fireworks');
+  if (!container) return;
+  
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    
+    for (let j = 0; j < 30; j++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      
+      const angle = (Math.PI * 2 * j) / 30;
+      const distance = 80 + Math.random() * 50;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance;
+      
+      particle.style.setProperty('--x', `${dx}px`);
+      particle.style.setProperty('--y', `${dy}px`);
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      particle.style.background = `hsl(${Math.random() * 360}, 100%, 60%)`;
+      
+      container.appendChild(particle);
+      
+      setTimeout(() => particle.remove(), 1500);
+    }
+  }
+}
 
 /**
- * מאתחלת את כל הפונקציונליות
+ * הסתרת פרסומות
  */
-function setupAlemTube() {
-    console.log('AlemTube מתחיל...');
-    
-    // הוסף אנימציות
-    addAnimations();
-    
-    // מצא אלמנטים
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    
-    if (!searchInput || !searchBtn) {
-        console.error('לא נמצאו אלמנטים נחוצים');
-        return;
-    }
-    
-    // הגדר אירועי חיפוש
-    searchBtn.addEventListener('click', () => {
-        playFromInput(searchInput.value);
+function hideAds() {
+  const adSelectors = [
+    '.ad', '.ads', '.advertisement', 
+    '[class*="ad-"]', '[id*="ad-"]',
+    '.video-ads', '.ytp-ad-module'
+  ];
+  
+  adSelectors.forEach(selector => {
+    const ads = document.querySelectorAll(selector);
+    ads.forEach(ad => {
+      if (ad && ad.style) {
+        ad.style.display = 'none';
+        ad.style.visibility = 'hidden';
+        ad.style.opacity = '0';
+        ad.style.height = '0';
+        ad.style.width = '0';
+        ad.style.overflow = 'hidden';
+      }
     });
-    
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            playFromInput(searchInput.value);
-        }
-    });
-    
-    // הגדר מסך מלא
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', goFullscreen);
-        fullscreenBtn.style.display = 'none'; // הסתר בהתחלה
+  });
+  
+  // ניסיון לדלג על פרסומות
+  const skipButtons = document.querySelectorAll('.skip-ad, .skip-button, .ytp-ad-skip-button');
+  skipButtons.forEach(btn => {
+    if (btn && btn.click) {
+      btn.click();
     }
-    
-    // בדוק אם יש קישור ב-URL
-    checkUrlForVideo();
-    
-    // פוקוס על תיבת החיפוש
-    setTimeout(() => {
-        if (searchInput) {
-            searchInput.focus();
-        }
-    }, 500);
-    
-    console.log('AlemTube מוכן לשימוש!');
+  });
+}
+
+// ===== ניהול מטמון =====
+
+/**
+ * שמירת נתונים במטמון
+ */
+function saveToCache() {
+  try {
+    localStorage.setItem("abe_playlist", JSON.stringify(playlist));
+    localStorage.setItem("abe_index", currentIndex.toString());
+  } catch (error) {
+    console.error("שגיאה בשמירת מטמון:", error);
+  }
 }
 
 /**
- * בודקת אם יש קישור סרטון ב-URL
+ * טעינת נתונים ממטמון
  */
-function checkUrlForVideo() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoParam = urlParams.get('v');
+function loadFromCache() {
+  try {
+    const savedPlaylist = localStorage.getItem("abe_playlist");
+    const savedIndex = localStorage.getItem("abe_index");
     
-    if (videoParam) {
-        const videoId = extractVideoId(videoParam) || videoParam;
-        document.getElementById('searchInput').value = videoParam;
-        setTimeout(() => embedVideo(videoId), 100);
+    if (savedPlaylist && savedIndex !== null) {
+      playlist = JSON.parse(savedPlaylist);
+      currentIndex = parseInt(savedIndex);
+      
+      if (playlist.length > 0 && currentIndex >= 0 && currentIndex < playlist.length) {
+        playVideo(currentIndex);
+      }
     }
+  } catch (error) {
+    console.error("שגיאה בטעינת מטמון:", error);
+  }
 }
 
-// ===== הפעלה אוטומטית =====
+// ===== אתחול אוטומטי =====
 
-// הפעל את הכל כשהדף נטען
+// הפעלת האפליקציה כשהדף נטען
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupAlemTube);
+  document.addEventListener('DOMContentLoaded', initApp);
 } else {
-    setupAlemTube();
+  initApp();
 }
+
+// הפעלת הסתרת פרסומות כל 2 שניות
+setInterval(hideAds, 2000);
