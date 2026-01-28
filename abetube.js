@@ -1,10 +1,3 @@
-const urlParams = new URLSearchParams(window.location.search);
-const videoParam = urlParams.get('v');
-
-if (videoParam) {
-    const videoId = extractVideoId(videoParam) || videoParam;
-    embedVideo(videoId);
-}
 
 window.addEventListener("load", () => {
       setTimeout(() => {
