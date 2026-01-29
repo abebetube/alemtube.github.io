@@ -2,54 +2,34 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>AlemTube - Video Player</title>
+  <title>AlemTube</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="AlemTube - נגן YouTube מתקדם">
   <link rel="icon" type="image/png" href="logo.png" />
-  
-  <!-- קישור לקובץ CSS -->
   <link rel="stylesheet" href="css/style.css">
-  
-  <!-- קישור ל-YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-  <!-- מסך התחלה עם זיקוקים -->
+  <header>AlemTube - נגן יוטיוב</header>
+
+  <div class="container">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="הקלד מילת חיפוש או קישור ל-YouTube" />
+      <button onclick="searchVideos()">חפש</button>
+    </div>
+
+    <div id="player-container"></div>
+    <div id="results"></div>
+  </div>
+
+ 
   <div id="splash">
     <div class="fireworks"></div>
     <div class="logo-area">
-      <img src="logo.png" alt="AlemTube Logo" />
+      <img src="logo.png" alt="logo" />
       <h1 class="title">AlemTube</h1>
     </div>
   </div>
 
-  <!-- כותרת עם לוגו -->
-  <header>
-    <img src="logo.png" alt="AlemTube Logo" class="header-logo" />
-    <span class="header-title">
-      AlemTube<span class="separator">|</span><span class="subtitle">Video Player</span>
-    </span>
-  </header>
-
-  <!-- תוכן ראשי -->
-  <div class="container">
-    <!-- תיבת חיפוש -->
-    <div class="search-box">
-      <input id="searchInput" type="text" placeholder="הקלד מילת חיפוש או קישור ל-YouTube" />
-      <button id="searchBtn">חפש</button>
-    </div>
-
-    <!-- נגן הווידאו -->
-    <div id="player-container"></div>
-
-    <!-- תוצאות חיפוש -->
-    <div id="results"></div>
-  </div>
-
-  <!-- כפתור מסך מלא -->
-  <button id="fullscreen-btn">מסך מלא</button>
-
-  <!-- קבצי JavaScript -->
   <script src="js/config.js"></script>
   <script src="js/alemtube.js"></script>
 </body>
