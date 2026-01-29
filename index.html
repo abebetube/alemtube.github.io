@@ -2,11 +2,12 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>AlemTube</title>
+  <title>AlemTube - Video Player</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AlemTube - נגן YouTube מתקדם">
   <link rel="icon" type="image/png" href="logo.png" />
   
-  <!-- קישור לקובץ CSS חיצוני -->
+  <!-- קישור לקובץ CSS -->
   <link rel="stylesheet" href="css/style.css">
   
   <!-- קישור ל-YouTube IFrame API -->
@@ -24,32 +25,30 @@
 
   <!-- כותרת עם לוגו -->
   <header>
-    <div class="header-container">
-      <img src="logo.png" alt="AlemTube Logo" class="header-logo" />
-      <div class="header-text">
-        <h1>AlemTube video player</h1>
-        
-      </div>
-    </div>
+    <img src="logo.png" alt="AlemTube Logo" class="header-logo" />
+    <span class="header-title">
+      AlemTube<span class="separator">|</span><span class="subtitle">Video Player</span>
+    </span>
   </header>
 
+  <!-- תוכן ראשי -->
   <div class="container">
+    <!-- תיבת חיפוש -->
     <div class="search-box">
       <input id="searchInput" type="text" placeholder="הקלד מילת חיפוש או קישור ל-YouTube" />
       <button id="searchBtn">חפש</button>
     </div>
 
+    <!-- נגן הווידאו -->
     <div id="player-container"></div>
+
+    <!-- תוצאות חיפוש -->
     <div id="results"></div>
   </div>
 
-  <button id="fullscreen-btn">מעבר למסך מלא</button>
-
-  <!-- קובץ הגדרות (מפתח API) - חייב להיות ראשון! -->
+ 
+  <!-- קבצי JavaScript -->
   <script src="js/config.js"></script>
-  
-  <!-- קובץ האפליקציה הראשי -->
   <script src="js/alemtube.js"></script>
 </body>
 </html>
-
