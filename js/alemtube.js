@@ -1,72 +1,166 @@
+/* =========================
+   CONFIG & GLOBALS
+========================= */
 const API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
 let playlist = [];
 let currentIndex = 0;
 
-/* Load cache */
-window.onload = () => loadFromCache();
+/* =========================
+   INIT
+========================= */
+window.addEventListener("load", () => {
+  loadFromCache();
+  initSplash();
+});
 
-/* Enter key */
-document.getElementById("searchInput")
-  .addEventListener("keydown", e => e.key === "Enter" && searchVideos());
+document.getElementById("searchInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    searchVideos();
+  }
+});
 
+/* =========================
+   SEARCH
+========================= */
 async function searchVideos() {
-  const query = searchInput.value.trim();
+  const query = document.getElementById("searchInput").value.trim();
   if (!query) return;
 
   playlist = [];
-  results.innerHTML = "";
-  playerContainer.innerHTML = "";
+  currentIndex = 0;
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("player-container").innerHTML = "";
 
-  if (query.includes("youtu")) {
-    const id = query.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
-    if (id && await checkEmbeddable(id)) {
-      playlist = [{ videoId: id, title: "וידאו שהוזן", thumb: "" }];
-      playVideo(0);
+  const isURL = query.includes("youtube.com") || query.includes("youtu.be");
+
+  if (isURL) {
+    const match = query.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+    const videoId = match ? match[1] : null;
+
+    if (videoId && await checkEmbeddable(videoId)) {
+      playlist = [{ videoId, title: "סרטון שהוזן", thumb: "" }];
       saveToCache();
+      playVideo(0);
     }
     return;
   }
 
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=30&q=${encodeURIComponent(query)}&key=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
+  const url =
+    `https://www.googleapis.com/youtube/v3/search?` +
+    `part=snippet&type=video&maxResults=30&q=${encodeURIComponent(query)}` +
+    `&key=${API_KEY}`;
 
-  for (const item of data.items) {
-    if (await checkEmbeddable(item.id.videoId)) {
-      playlist.push({
-        videoId: item.id.videoId,
-        title: item.snippet.title,
-        thumb: item.snippet.thumbnails.medium.url
-      });
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    for (const item of data.items) {
+      const vid = item.id.videoId;
+      if (await checkEmbeddable(vid)) {
+        playlist.push({
+          videoId: vid,
+          title: item.snippet.title,
+          thumb: item.snippet.thumbnails.medium.url
+        });
+      }
     }
-  }
 
-  if (playlist.length) {
-    playVideo(0);
+    if (!playlist.length) {
+      alert("לא נמצאו סרטונים ניתנים לניגון");
+      return;
+    }
+
     saveToCache();
+    playVideo(0);
+
+  } catch (err) {
+    console.error("שגיאת חיפוש:", err);
   }
 }
 
-function playVideo(i) {
-  const v = playlist[i];
-  playerContainer.innerHTML =
-    `<iframe id="ytplayer" src="https://www.youtube-nocookie.com/embed/${v.videoId}?autoplay=1" allowfullscreen></iframe>`;
+/* =========================
+   PLAYER
+========================= */
+function playVideo(index) {
+  const video = playlist[index];
+  if (!video) return;
 
+  currentIndex = index;
+
+  document.getElementById("player-container").innerHTML = `
+    <iframe
+      id="ytplayer"
+      src="https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>
+  `;
+
+  setTimeout(() => {
+    document.getElementById("player-container")
+      .scrollIntoView({ behavior: "smooth" });
+  }, 400);
+
+  renderResults();
+  saveToCache();
+
+  setTimeout(setupPlayerEvents, 800);
+}
+
+function renderResults() {
+  const results = document.getElementById("results");
   results.innerHTML = "";
-  playlist.forEach((vid, idx) => {
-    if (idx === i) return;
+
+  playlist.forEach((v, i) => {
+    if (i === currentIndex) return;
+
     const div = document.createElement("div");
     div.className = "video-item";
-    div.onclick = () => playVideo(idx);
-    div.innerHTML = `<img src="${vid.thumb}"><div class="video-title">${vid.title}</div>`;
+    div.onclick = () => playVideo(i);
+
+    div.innerHTML = `
+      <img src="${v.thumb}" alt="${v.title}">
+      <div class="video-title">${v.title}</div>
+    `;
+
     results.appendChild(div);
   });
 }
 
+/* =========================
+   YOUTUBE EVENTS
+========================= */
+function setupPlayerEvents() {
+  if (typeof YT === "undefined" || !YT.Player) return;
+
+  new YT.Player("ytplayer", {
+    events: {
+      onStateChange: (e) => {
+        if (
+          e.data === YT.PlayerState.ENDED &&
+          currentIndex + 1 < playlist.length
+        ) {
+          playVideo(currentIndex + 1);
+        }
+      }
+    }
+  });
+}
+
+/* =========================
+   UTILITIES
+========================= */
 async function checkEmbeddable(id) {
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${id}&key=${API_KEY}`);
-  const data = await res.json();
-  return data.items?.[0]?.status?.embeddable;
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=status&id=${id}&key=${API_KEY}`
+    );
+    const data = await res.json();
+    return data.items?.[0]?.status?.embeddable ?? false;
+  } catch {
+    return false;
+  }
 }
 
 function saveToCache() {
@@ -76,8 +170,62 @@ function saveToCache() {
 
 function loadFromCache() {
   const list = localStorage.getItem("abe_playlist");
-  if (list) {
+  const idx = localStorage.getItem("abe_index");
+
+  if (list && idx !== null) {
     playlist = JSON.parse(list);
-    playVideo(0);
+    currentIndex = parseInt(idx, 10);
+    playVideo(currentIndex);
   }
 }
+
+/* =========================
+   SPLASH & FIREWORKS
+========================= */
+function initSplash() {
+  let count = 0;
+  const splash = document.getElementById("splash");
+
+  const interval = setInterval(() => {
+    launchFireworks();
+    if (++count >= 4) clearInterval(interval);
+  }, 700);
+
+  setTimeout(() => splash.style.display = "none", 4000);
+}
+
+function launchFireworks(count = 5) {
+  const container = document.querySelector(".fireworks");
+  if (!container) return;
+
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+
+    for (let j = 0; j < 30; j++) {
+      const p = document.createElement("div");
+      p.className = "particle";
+      p.style.left = `${x}px`;
+      p.style.top = `${y}px`;
+      p.style.background =
+        `hsl(${Math.random() * 360},100%,60%)`;
+
+      container.appendChild(p);
+      setTimeout(() => p.remove(), 1500);
+    }
+  }
+}
+
+/* =========================
+   ADS CLEAN (ויזואלי בלבד)
+========================= */
+function skipAds() {
+  document
+    .querySelectorAll(".ad,.ads,.advertisement,#ad-container")
+    .forEach(el => el.style.display = "none");
+
+  const skip = document.querySelector(".skip-ad,.skip-button");
+  if (skip) skip.click();
+}
+
+setInterval(skipAds, 3000);
