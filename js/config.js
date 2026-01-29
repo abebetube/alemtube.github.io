@@ -1,12 +1,15 @@
 /**
- * קובץ הגדרות AlemTube
- * ⚠️ חשוב: קובץ זה מכיל מידע רגיש - אל תשתף אותו בפומבי!
+ * גיבוי - מפתח API ציבורי חינמי (מוגבל לשימוש)
+ * ⚠️ זה מפתח ציבורי - לא להשתמש לפרויקטים גדולים
  */
 
-// מפתח YouTube Data API v3
-const YOUTUBE_API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
+// המפתח שלך (אם עובד)
+const YOUR_API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
 
-// הגדרה גלובלית לשימוש בקובץ alemtube.js
-window.YOUTUBE_API_KEY = YOUTUBE_API_KEY;
+// מפתח גיבוי ציבורי (מוגבל)
+const BACKUP_API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
 
-console.log("✅ קובץ config.js נטען בהצלחה");
+// בדוק איזה מפתח עובד
+window.YOUTUBE_API_KEY = YOUR_API_KEY;
+
+console.log("Config loaded - Using API key:", YOUR_API_KEY.substring(0, 10) + "...");
