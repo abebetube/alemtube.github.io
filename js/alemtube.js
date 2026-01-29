@@ -38,7 +38,7 @@ async function searchVideos() {
 
   const url =
     `https://www.googleapis.com/youtube/v3/search?` +
-    `part=snippet&type=video&maxResults=20` +
+    `part=snippet&type=video&maxResults=30` +
     `&q=${encodeURIComponent(query)}` +
     `&key=${API_KEY}`;
 
@@ -46,12 +46,24 @@ async function searchVideos() {
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!data.items || data.items.length === 0) {
-      alert("לא נמצאו תוצאות");
+    /* 🛑 טיפול בשגיאת API */
+    if (data.error) {
+      console.error("❌ שגיאת API:", data.error);
+      alert(
+        `שגיאת YouTube API:\n` +
+        `${data.error.message}`
+      );
+      return;
+    }
+
+    if (!Array.isArray(data.items)) {
+      alert("לא התקבלו תוצאות מהשרת");
       return;
     }
 
     data.items.forEach(item => {
+      if (!item.id?.videoId) return;
+
       playlist.push({
         videoId: item.id.videoId,
         title: item.snippet.title,
@@ -59,14 +71,21 @@ async function searchVideos() {
       });
     });
 
+    if (playlist.length === 0) {
+      alert("לא נמצאו סרטונים");
+      return;
+    }
+
     console.log(`✅ נמצאו ${playlist.length} סרטונים`);
     saveToCache();
     playVideo(0);
 
   } catch (err) {
-    console.error("❌ שגיאת חיפוש:", err);
+    console.error("❌ שגיאת רשת:", err);
+    alert("שגיאת תקשורת עם YouTube");
   }
 }
+
 
 /***********************
  * PLAYER
