@@ -1,7 +1,7 @@
 /***********************
  * GLOBALS & CONFIG
  ***********************/
-const API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
+const API_KEY = "AIzaSyCaKQjUG_XZmKFoD4_hKfMRew9h_UTOzN4";
 let playlist = [];
 let currentIndex = 0;
 let player;
