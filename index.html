@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>Alem Tube</title>
+  <title>AlemTube</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="logo.png" />
   
@@ -17,13 +17,21 @@
   <div id="splash">
     <div class="fireworks"></div>
     <div class="logo-area">
-      <img src="logo.png" alt="AbeTube Logo" />
+      <img src="logo.png" alt="AlemTube Logo" />
       <h1 class="title">AlemTube</h1>
     </div>
   </div>
 
-  <!-- תוכן האתר -->
-  <header>AlemTube - vidoe player</header>
+  <!-- כותרת עם לוגו -->
+  <header>
+    <div class="header-container">
+      <img src="logo.png" alt="AlemTube Logo" class="header-logo" />
+      <div class="header-text">
+        <h1>AlemTube</h1>
+        <p>נגן וידאו מתקדם</p>
+      </div>
+    </div>
+  </header>
 
   <div class="container">
     <div class="search-box">
@@ -35,12 +43,12 @@
     <div id="results"></div>
   </div>
 
- 
-  <!-- קישור לקובץ JavaScript חיצוני -->
-   <script src="js/alemtube.js"></script>
+  <button id="fullscreen-btn">מעבר למסך מלא</button>
+
+  <!-- קובץ הגדרות (מפתח API) - חייב להיות ראשון! -->
+  <script src="js/config.js"></script>
+  
+  <!-- קובץ האפליקציה הראשי -->
+  <script src="js/alemtube.js"></script>
 </body>
 </html>
-
-
-
-
