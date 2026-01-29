@@ -4,7 +4,7 @@
  */
 
 // הגדרות קבועות
-const API_KEY = "AIzaSyCKWg2Po9gpQTx2-SSadDOouTB04jBFAAU";
+const API_KEY = window.YOUTUBE_API_KEY || "";
 const YT_EMBED_URL = "https://www.youtube-nocookie.com/embed/";
 const YT_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 const YT_VIDEO_URL = "https://www.googleapis.com/youtube/v3/videos";
@@ -14,6 +14,43 @@ let playlist = [];
 let currentIndex = 0;
 let ytPlayer = null;
 
+// ===== פונקציות עזר לבדיקת API =====
+
+/**
+ * בדיקת תקינות מפתח API
+ */
+function validateApiKey() {
+  if (!API_KEY || API_KEY === "" || API_KEY === "xxxx") {
+    return {
+      valid: false,
+      message: "❌ מפתח API חסר",
+      details: "אנא צור קובץ js/config.js עם המפתח שלך"
+    };
+  }
+  
+  if (API_KEY.length < 30) {
+    return {
+      valid: false,
+      message: "❌ מפתח API לא תקין",
+      details: "מפתח API צריך להיות ארוך יותר"
+    };
+  }
+  
+  if (API_KEY.startsWith("AIza")) {
+    return {
+      valid: true,
+      message: "✅ מפתח API תקין",
+      details: `מפתח באורך ${API_KEY.length} תווים`
+    };
+  }
+  
+  return {
+    valid: false,
+    message: "❌ פורמט מפתח API לא תקין",
+    details: "מפתח API אמור להתחיל ב-AIza"
+  };
+}
+
 // ===== פונקציות אתחול =====
 
 /**
@@ -21,6 +58,38 @@ let ytPlayer = null;
  */
 function initApp() {
   console.log("AlemTube מתחיל...");
+  
+  // בדיקת מפתח API
+  const apiCheck = validateApiKey();
+  console.log("בדיקת API:", apiCheck);
+  
+  if (!apiCheck.valid) {
+    console.error("❌ מפתח API לא תקין:", apiCheck.message);
+    showAlert(`❌ ${apiCheck.message}: ${apiCheck.details}`, "error");
+    
+    // השבתת פונקציונליות
+    document.getElementById("searchBtn").disabled = true;
+    document.getElementById("searchInput").placeholder = apiCheck.message;
+    document.getElementById("searchInput").disabled = true;
+    
+    // הצגת הוראות
+    document.getElementById("player-container").innerHTML = `
+      <div style="text-align: center; padding: 40px; background: #f8d7da; border-radius: 10px; color: #721c24;">
+        <h3>❌ מפתח API חסר</h3>
+        <p>להפעלת האפליקציה, אנא:</p>
+        <ol style="text-align: right; direction: rtl; margin: 20px;">
+          <li>צור קובץ <strong>js/config.js</strong></li>
+          <li>הוסף את התוכן הבא:</li>
+          <pre style="background: #fff; padding: 10px; border-radius: 5px; direction: ltr;">
+const YOUTUBE_API_KEY = "המפתח_שלך_כאן";
+window.YOUTUBE_API_KEY = YOUTUBE_API_KEY;</pre>
+          <li>החלף "המפתח_שלך_כאן" במפתח ה-YouTube API שלך</li>
+        </ol>
+        <p><a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #155724;">➡️ קבל מפתח API כאן</a></p>
+      </div>
+    `;
+    return;
+  }
   
   // הגדרת אירועים
   setupEventListeners();
@@ -96,6 +165,13 @@ function setupSplashScreen() {
  * חיפוש סרטונים
  */
 async function searchVideos() {
+  // בדיקת מפתח API
+  const apiCheck = validateApiKey();
+  if (!apiCheck.valid) {
+    showAlert(`❌ ${apiCheck.message}`, "error");
+    return;
+  }
+  
   const query = document.getElementById("searchInput").value.trim();
   if (!query) {
     showAlert("נא להזין מילת חיפוש או קישור", "error");
@@ -123,6 +199,12 @@ async function searchVideos() {
  * טיפול בקישור YouTube ישיר
  */
 async function handleYouTubeURL(url) {
+  // בדיקת מפתח API
+  if (!API_KEY || API_KEY === "xxxx") {
+    showAlert("❌ מפתח API חסר - לא ניתן לחפש", "error");
+    return;
+  }
+  
   const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
   const videoId = match ? match[1] : "";
   
@@ -151,6 +233,12 @@ async function handleYouTubeURL(url) {
  * חיפוש ב-YouTube API
  */
 async function searchYouTube(query) {
+  // בדיקת מפתח API
+  if (!API_KEY || API_KEY === "xxxx") {
+    showAlert("❌ מפתח API חסר - לא ניתן לחפש", "error");
+    return;
+  }
+  
   showAlert("מחפש סרטונים...", "success");
   
   const url = `${YT_SEARCH_URL}?part=snippet&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}&maxResults=30&relevanceLanguage=he`;
@@ -260,6 +348,12 @@ function displayOtherVideos() {
  * בדיקת אפשרות הטבעה של סרטון
  */
 async function checkEmbeddable(videoId) {
+  // בדיקת מפתח API
+  if (!API_KEY || API_KEY === "xxxx") {
+    console.error("מפתח API חסר בבדיקת הטבעה");
+    return false;
+  }
+  
   const url = `${YT_VIDEO_URL}?part=status&id=${videoId}&key=${API_KEY}`;
   
   try {
@@ -312,46 +406,6 @@ function onPlayerError(error) {
   showAlert("שגיאה בנגינת הסרטון", "error");
 }
 
-// ===== פונקציות מסך מלא =====
-
-/**
- * מעבר למסך מלא
- */
-function toggleFullScreen() {
-  const elem = document.documentElement;
-  
-  if (!document.fullscreenElement) {
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen();
-    } else if (elem.webkitRequestFullscreen) {
-      elem.webkitRequestFullscreen();
-    } else if (elem.mozRequestFullScreen) {
-      elem.mozRequestFullScreen();
-    } else if (elem.msRequestFullscreen) {
-      elem.msRequestFullscreen();
-    }
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
-    }
-  }
-}
-
-/**
- * עדכון טקסט כפתור מסך מלא
- */
-function updateFullscreenButton() {
-  const btn = document.getElementById("fullscreen-btn");
-  if (btn) {
-    btn.textContent = document.fullscreenElement ? "יציאה ממסך מלא" : "מעבר למסך מלא";
-  }
-}
 
 // ===== פונקציות עזר =====
 
