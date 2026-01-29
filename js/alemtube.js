@@ -28,17 +28,11 @@ document.getElementById("searchInput").addEventListener("keydown", (e) => {
 async function searchVideos() {
   const query = document.getElementById("searchInput").value.trim();
   console.log("🔍 מחפש:", query);
-
   if (!query) return;
 
-  playlist = [];
-  currentIndex = 0;
-  document.getElementById("results").innerHTML = "";
-  document.getElementById("player-container").innerHTML = "";
-
   const url =
-    `https://www.googleapis.com/youtube/v3/search?` +
-    `part=snippet&type=video&maxResults=30` +
+    `https://www.googleapis.com/youtube/v3/search` +
+    `?part=snippet&type=video&maxResults=30` +
     `&q=${encodeURIComponent(query)}` +
     `&key=${API_KEY}`;
 
@@ -46,43 +40,33 @@ async function searchVideos() {
     const res = await fetch(url);
     const data = await res.json();
 
-    /* 🛑 טיפול בשגיאת API */
+    // 🛑 אם YouTube החזיר שגיאה – עוצרים פה
     if (data.error) {
-      console.error("❌ שגיאת API:", data.error);
-      alert(
-        `שגיאת YouTube API:\n` +
-        `${data.error.message}`
-      );
+      console.error("❌ YouTube API Error:", data.error);
+      alert("שגיאת YouTube API:\n" + data.error.message);
       return;
     }
 
+    // 🛑 אם אין items
     if (!Array.isArray(data.items)) {
-      alert("לא התקבלו תוצאות מהשרת");
+      console.warn("⚠️ אין items בתגובה:", data);
+      alert("לא התקבלו תוצאות");
       return;
     }
 
+    playlist = [];
     data.items.forEach(item => {
       if (!item.id?.videoId) return;
-
-      playlist.push({
-        videoId: item.id.videoId,
-        title: item.snippet.title,
-        thumb: item.snippet.thumbnails.medium.url
-      });
+      playlist.push(item.id.videoId);
     });
 
-    if (playlist.length === 0) {
-      alert("לא נמצאו סרטונים");
-      return;
+    console.log("✅ נמצאו", playlist.length, "סרטונים");
+    if (playlist.length > 0) {
+      playVideo(0);
     }
-
-    console.log(`✅ נמצאו ${playlist.length} סרטונים`);
-    saveToCache();
-    playVideo(0);
 
   } catch (err) {
     console.error("❌ שגיאת רשת:", err);
-    alert("שגיאת תקשורת עם YouTube");
   }
 }
 
