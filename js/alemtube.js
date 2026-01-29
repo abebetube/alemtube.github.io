@@ -20,7 +20,7 @@ let ytPlayer = null;
  * אתחול האפליקציה
  */
 function initApp() {
-  console.log("AbeTube מתחיל...");
+  console.log("AlemTube מתחיל...");
   
   // הגדרת אירועים
   setupEventListeners();
