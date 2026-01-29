@@ -98,4 +98,135 @@ function playVideo(index) {
 }
 
 function toggleFullScreen() {
-  const elem = document
+  const elem = document.documentElement;
+  
+  if (!document.fullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
+function setupPlayerEvents() {
+  if (typeof YT === "undefined" || typeof YT.Player === "undefined") return;
+  new YT.Player("ytplayer", {
+    events: {
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.ENDED && currentIndex + 1 < playlist.length) {
+          currentIndex++;
+          saveToCache();
+          playVideo(currentIndex);
+        }
+      },
+    },
+  });
+}
+
+async function checkEmbeddable(id) {
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=status&id=${id}&key=${API_KEY}`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.items?.[0]?.status?.embeddable ?? false;
+  } catch {
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ads = document.querySelectorAll('.ad, .ads, .advertisement');
+  ads.forEach(ad => ad.style.display = 'none');
+});
+
+function skipAds() {
+  const adElements = document.querySelectorAll('.ad, .advertisement, #ad-container');
+  
+  adElements.forEach(el => {
+    el.style.display = 'none';
+  });
+  
+  const skipButton = document.querySelector('.skip-ad, .skip-button');
+  if (skipButton) {
+    skipButton.click();
+  }
+}
+
+setInterval(skipAds, 3000);
+
+function saveToCache() {
+  localStorage.setItem("alemtube_playlist", JSON.stringify(playlist));
+  localStorage.setItem("alemtube_index", currentIndex);
+}
+
+function loadFromCache() {
+  const list = localStorage.getItem("alemtube_playlist");
+  const idx = localStorage.getItem("alemtube_index");
+  if (list && idx !== null) {
+    playlist = JSON.parse(list);
+    currentIndex = parseInt(idx);
+    playVideo(currentIndex);
+  }
+}
+
+const tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+
+function launchFireworks(count = 5) {
+  const container = document.querySelector('.fireworks');
+
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+
+    for (let j = 0; j < 30; j++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+
+      const angle = (Math.PI * 2 * j) / 30;
+      const distance = 80 + Math.random() * 50;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance;
+
+      particle.style.setProperty('--x', `${dx}px`);
+      particle.style.setProperty('--y', `${dy}px`);
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      particle.style.background = `hsl(${Math.random() * 360}, 100%, 60%)`;
+
+      container.appendChild(particle);
+
+      setTimeout(() => particle.remove(), 1500);
+    }
+  }
+}
+
+window.addEventListener("load", () => {
+  const splash = document.getElementById("splash");
+  let count = 0;
+  const interval = setInterval(() => {
+    launchFireworks();
+    count++;
+    if (count >= 4) clearInterval(interval);
+  }, 700);
+
+  setTimeout(() => {
+    splash.style.display = "none";
+  }, 4000);
+});
